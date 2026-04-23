@@ -15,20 +15,23 @@ Steps:
 def kmeans_clustering(
         n_clusters = 1, 
         *, 
-        anomaly_score = False, 
+        compute_anomaly_score = False, 
         max_iter = 300,
         pca = False,
         plot = True
     ):
     # use sklearn k_means clustering
     df = preprocessing(scaling=True, pca=pca)
-    X = df.drop(columns=["stroke"])
+    if pca:
+        X = df[["pc1", "pc2"]]
+    else:
+        X = df.drop(columns=["stroke"])
 
     df_cp = df.copy()
     model = KMeans(n_clusters=n_clusters, max_iter=max_iter, random_state=1)
     cluster_labels = model.fit_predict(X)
     distances = model.transform(X)
-    anomaly_score = distances[np.arange(len(X)), cluster_labels]
+    anomaly_scores = distances[np.arange(len(X)), cluster_labels]
 
     df_cp["cluster"] = cluster_labels
 
@@ -41,10 +44,51 @@ def kmeans_clustering(
             plt.ylabel("Feature 2")
             plt.title(f"K-means Clustering (k={n_clusters})")
             plt.show()
-    df["anomaly_score"] = anomaly_score
 
-    threshold = df["anomaly_score"].quantile(0.95)
-    df["anomaly"] = df["anomaly_score"] >= threshold
+    if compute_anomaly_score:
+        df["anomaly_score"] = anomaly_scores
+        threshold = df["anomaly_score"].quantile(0.9973)
+        df["anomaly"] = df["anomaly_score"] >= threshold
+
+        print(type(df))
+        for row in df.iterrows():
+            print(row)
+            break
+
+        potential_outliers = ["hypertension", "heart_disease", "avg_glucose_level", "bmi"]
+        # for each anomaly in the dataset, print out its value in the above categories
+        for index, row in df.iterrows():
+            if row["anomaly"] == True:
+                print(f"Anomaly {index}:")
+                for o in potential_outliers:
+                    print(f"{o}: {row[o]}", end=', ')
+                print("\n")
+
+        # plot data points according to anomaly function
+        if X.shape[1] >= 2:
+            plt.figure(figsize=(6, 5))
+            scatter = plt.scatter(
+                X.iloc[:, 0],
+                X.iloc[:, 1],
+                c=df["anomaly_score"],
+                cmap="Reds",
+                alpha=0.7,
+            )
+            plt.scatter(
+                X.loc[df["anomaly"], X.columns[0]],
+                X.loc[df["anomaly"], X.columns[1]],
+                facecolors="none",
+                edgecolors="black",
+                s=100,
+                linewidths=1.5,
+                label="Anomalies",
+            )
+            plt.xlabel(X.columns[0])
+            plt.ylabel(X.columns[1])
+            plt.title(f"K-means Anomaly Scores (k={n_clusters})")
+            plt.colorbar(scatter, label="Anomaly score")
+            plt.legend()
+            plt.show()
 
     SSE = model.inertia_
 
@@ -55,12 +99,17 @@ def kmeans_eval():
     pass
 
 def main():
-    ks = [1, 2, 3, 4, 5, 6]
-    max_iters = [200, 300, 500]
+    ks = [4]
 
     params_dict = {}
     for k in ks:
-        df, sse = kmeans_clustering(n_clusters=k, max_iter=300, pca=False, plot=False)
+        df, sse = kmeans_clustering(
+            n_clusters=k,
+            max_iter=100,
+            pca=True,
+            plot=True,
+            compute_anomaly_score=True,
+        )
         params_dict[k] = sse
         print(f"K: {k}, SSE: {sse}")
         # print out number of instances per cluster as a percentage
