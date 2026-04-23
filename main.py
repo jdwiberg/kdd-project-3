@@ -67,17 +67,11 @@ def preprocessing(*, scaling=True, pca = False, outlier_removal = False, feature
 
     # Dimensionality reduction using PCA
     if pca:
-        target = df['stroke'].copy()
         features = df.drop(columns=['stroke'])
         pca_model = PCA(n_components=2)
         reduced_features = pca_model.fit_transform(features)
-        df = pd.DataFrame(
-            reduced_features,
-            columns=['pc1', 'pc2'],
-            index=df.index,
-        )
-
-        df['stroke'] = target
+        df['pc1'] = reduced_features[:, 0]
+        df['pc2'] = reduced_features[:, 1]
 
     # Feature selection / removal
     for feature in feature_selection:
@@ -91,7 +85,6 @@ def preprocessing(*, scaling=True, pca = False, outlier_removal = False, feature
 
 def main():
     df = preprocessing()
-
 
 
 if __name__ == "__main__":
