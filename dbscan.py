@@ -62,7 +62,7 @@ def dbscan_clustering(
         plt.title(f"DBSCAN Clustering (eps={eps})")
         plt.show()
 
-    # anomaly detection (noise points)
+    # anomaly detection
     if compute_anomaly:
         df_cp["anomaly"] = df_cp["cluster"] == -1
 
@@ -85,7 +85,6 @@ def dbscan_clustering(
 
 
 def dbscan_eval():
-    # vary BOTH eps and min_samples (THIS is the only important addition)
     eps_values = [0.3, 0.5, 0.7, 1.0, 1.5]
     min_samples_values = [3, 5, 10]
 
@@ -102,7 +101,6 @@ def dbscan_eval():
             params_dict[(eps, min_s)] = (n_clusters, n_noise)
             print(f"eps: {eps}, min_samples: {min_s}, clusters: {n_clusters}, noise: {n_noise}")
 
-    # keep simple plot (fix min_samples=5 like kmeans style)
     clusters = []
     noise = []
 
